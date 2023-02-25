@@ -14,6 +14,8 @@ from pathlib import Path
 import environ
 # Initialise environment variables
 
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,7 +47,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_yasg',
     "psycopg2",
-    "environ"
+    "expenses"
 ]
 
 MIDDLEWARE = [
@@ -78,13 +80,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'python_Backend_API.wsgi.application'
 
-
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-env = environ.Env()
-environ.Env.read_env()
 
-print(env("PASSWORD"))
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -98,6 +106,8 @@ DATABASES = {
 
 
 REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
     "NON_FIELD_ERROR_KEY": "error",
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
