@@ -4,16 +4,16 @@ from django.db import models
 # Create your models here.
 
 
-class Expense(models.Model):
-    CATEGORY_OPTIONS = [
-        ("ONLINE_SERVICES", "ONLINE_SERVICES"),
-        ("TRAVEL", "TRAVEL"),
-        ("RENT", "RENT"),
-        ("FOOD", "FOOD"),
+class Income(models.Model):
+    SOURCES_OPTIONS = [
+        ("WORK", "WORK"),
+        ("BUSINESSES", "BUSINESSES"),
+        ("SIDE_HUSTLE", "SIDE_HUSTLE"),
         ("OTHERS", "OTHERS"),
+
     ]
 
-    category = models.CharField(choices=CATEGORY_OPTIONS, max_length=255)
+    source = models.CharField(choices=SOURCES_OPTIONS, max_length=255)
     amount = models.DecimalField(
         max_digits=10, decimal_places=2, max_length=255)
     description = models.TextField()
@@ -24,4 +24,4 @@ class Expense(models.Model):
         ordering = ("-date", )
 
     def __str__(self):
-        return f"str(self.owner)'s {Expense}"
+        return f"str(self.owner)'s {Income}"

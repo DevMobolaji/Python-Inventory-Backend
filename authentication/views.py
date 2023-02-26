@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import generics, status, views
-from .serializers import EmailVerificationSerializer, RegisterSerializer, LoginSerializer
+from .serializers import (EmailVerificationSerializer, RegisterSerializer,
+                          LoginSerializer, RequestPasswordEmailSerializer, SetNewPasswordSerializer)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
@@ -11,12 +12,18 @@ from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 import jwt
+from .renderers import UserRender
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import smart_str, smart_bytes, DjangoUnicodeDecodeError  # type: ignore
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+
 # Create your views here.
 
 
 class RegisterView(generics.GenericAPIView):
 
     serializer_class = RegisterSerializer
+    renderer_classes = (UserRender, )
 
     def post(self, request):
         user = request.data
@@ -47,6 +54,7 @@ class RegisterView(generics.GenericAPIView):
 class verifyEmail(views.APIView):
 
     serializer_class = EmailVerificationSerializer
+    renderer_classes = (UserRender, )
 
     token_param_config = openapi.Parameter(
         "token", in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
@@ -74,9 +82,69 @@ class verifyEmail(views.APIView):
 class LoginAPIView(generics.GenericAPIView):
 
     serializer_class = LoginSerializer
+    renderer_classes = (UserRender, )
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class RequestPasswordEmail(generics.GenericAPIView):
+
+    serializer_class = RequestPasswordEmailSerializer
+
+    def post(self, request):
+
+        serializer = self.serializer_class(data=request.data)
+        email = request.data["email"]
+
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+
+            token = PasswordResetTokenGenerator().make_token(user)
+
+            current_site = get_current_site(request=request).domain
+
+            relative_link = reverse(
+                "password-rest-confirm", kwargs={"uidb64": uidb64, "token": token})
+
+            absurl = "http://"+current_site + relative_link
+
+            email_body = f"Hello \n please use the link below to reset your password \n {absurl}"
+            data = {
+                "email_body": email_body, "to_email": user.email, "email_subject": "Reset your password"
+            }
+            print(data)
+            Util.send_email(data)
+
+        return Response({"success": "We have sent you a link to reset your password"}, status=status.HTTP_200_OK)
+
+
+class PasswordTokenCheckAPI(generics.GenericAPIView):
+
+    def get(self, request, uidb64, token):
+        try:
+            id = smart_str(urlsafe_base64_decode(uidb64))
+
+            user = User.objects.get(id=id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({"error": "Token is not valid, Please request for a new one"}, status=status.HTTP_401_UNAUTHORIZED)
+
+            return Response({"success": True, "message": "Crendential valid", "uidb64": uidb64, "token": token}, status=status.HTTP_200_OK)
+        except DjangoUnicodeDecodeError as identifier:
+            return Response({"error": "Token is not valid, Please request for a new one"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class SetNewPasswordAPIView(generics.GenericAPIView):
+
+    serializer_class = SetNewPasswordSerializer
+
+    def patch(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        return Response({"success": True, "message": "Password Reset success"}, status=status.HTTP_200_OK)
