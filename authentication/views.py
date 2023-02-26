@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import generics, status, views
 from .serializers import EmailVerificationSerializer, RegisterSerializer, LoginSerializer
 from rest_framework.response import Response
