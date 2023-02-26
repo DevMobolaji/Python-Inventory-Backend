@@ -94,6 +94,7 @@ class LoginAPIView(generics.GenericAPIView):
 class RequestPasswordEmail(generics.GenericAPIView):
 
     serializer_class = RequestPasswordEmailSerializer
+    renderer_classes = (UserRender, )
 
     def post(self, request):
 
@@ -124,6 +125,7 @@ class RequestPasswordEmail(generics.GenericAPIView):
 
 
 class PasswordTokenCheckAPI(generics.GenericAPIView):
+    renderer_classes = (UserRender, )
 
     def get(self, request, uidb64, token):
         try:
@@ -142,6 +144,7 @@ class PasswordTokenCheckAPI(generics.GenericAPIView):
 class SetNewPasswordAPIView(generics.GenericAPIView):
 
     serializer_class = SetNewPasswordSerializer
+    renderer_classes = (UserRender, )
 
     def patch(self, request):
         serializer = self.serializer_class(data=request.data)
